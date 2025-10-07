@@ -59,7 +59,7 @@ def _paper_to_embed(paper: ArxivPaper) -> dict:
     summary = paper.tldr if paper.tldr else paper.summary
     embed = {
         "title": _truncate(paper.title, _MAX_TITLE),
-        "url": f"https://arxiv.org/abs/{paper.arxiv_id}",
+        "url": f"https://www.alphaxiv.org/overview/{paper.arxiv_id_with_version}",
         "description": _truncate(summary, _MAX_DESCRIPTION),
         "color": _DEFAULT_COLOR,
         "fields": [
