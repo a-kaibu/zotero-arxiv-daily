@@ -3,10 +3,12 @@ from openai import OpenAI
 from loguru import logger
 from time import sleep
 
+DEFAULT_MODEL_NAME = "gpt-oss:20b"
+
 GLOBAL_LLM = None
 
 class LLM:
-    def __init__(self, api_key: str = None, base_url: str = None, model: str = None,lang: str = "English"):
+    def __init__(self, api_key: str = None, base_url: str = None, model: str = None, lang: str = "English"):
         if api_key:
             self.llm = OpenAI(api_key=api_key, base_url=base_url)
         else:
@@ -17,7 +19,7 @@ class LLM:
                 n_threads=4,
                 verbose=False,
             )
-        self.model = model
+        self.model = model or DEFAULT_MODEL_NAME
         self.lang = lang
 
     def generate(self, messages: list[dict]) -> str:

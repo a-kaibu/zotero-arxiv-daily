@@ -25,9 +25,9 @@ services:
       - USE_LLM_API=1
       - OPENAI_API_KEY=sk-your-openai-key-here
       - OPENAI_API_BASE=https://api.openai.com/v1
-      - MODEL_NAME=Qwen/Qwen1.5-7B-Instruct
+      - MODEL_NAME=gpt-oss:20b
       - LANGUAGE=English
-      
+
       # 新增配置
       - HF_ENDPOINT=https://hf-mirror.com
       # - TZ=Asia/Shanghai  # 时区设置
@@ -42,11 +42,11 @@ services:
 
     command: >
       bash -c "
-      rm -f /var/run/crond.pid /var/run/cron.pid && 
-      printenv | grep -v 'no_proxy' >> /etc/environment && 
-      echo '0 8 * * * root cd /app && /usr/local/bin/uv run main.py >> /var/log/cron/corn.log 2>&1' > /etc/cron.d/zotero-job && 
-      chmod 0644 /etc/cron.d/zotero-job && 
-      touch /var/log/cron/corn.log && 
+      rm -f /var/run/crond.pid /var/run/cron.pid &&
+      printenv | grep -v 'no_proxy' >> /etc/environment &&
+      echo '0 8 * * * root cd /app && /usr/local/bin/uv run main.py >> /var/log/cron/corn.log 2>&1' > /etc/cron.d/zotero-job &&
+      chmod 0644 /etc/cron.d/zotero-job &&
+      touch /var/log/cron/corn.log &&
       cron -f &&
       tail -f /var/log/cron/cron.log
       "

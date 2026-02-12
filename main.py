@@ -28,7 +28,7 @@ from loguru import logger
 from gitignore_parser import parse_gitignore
 from tempfile import mkstemp
 from paper import ArxivPaper
-from llm import set_global_llm
+from llm import set_global_llm, DEFAULT_MODEL_NAME
 import feedparser
 
 def get_zotero_corpus(id:str,key:str) -> list[dict]:
@@ -114,7 +114,7 @@ def add_argument(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    
+
     add_argument('--zotero_id', type=str, help='Zotero user ID')
     add_argument('--zotero_key', type=str, help='Zotero API key')
     add_argument('--zotero_ignore',type=str,help='Zotero collection to ignore, using gitignore-style pattern.')
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         "--model_name",
         type=str,
         help="LLM Model Name",
-        default="gpt-4o",
+        default=DEFAULT_MODEL_NAME,
     )
     add_argument(
         "--language",
