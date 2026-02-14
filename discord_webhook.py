@@ -7,7 +7,7 @@ from loguru import logger
 
 from paper import ArxivPaper
 
-_MAX_EMBEDS_PER_REQUEST = 10
+_MAX_EMBEDS_PER_REQUEST = 1
 _MAX_TITLE = 256
 _MAX_DESCRIPTION = 2048
 _MAX_FIELD_VALUE = 1024
