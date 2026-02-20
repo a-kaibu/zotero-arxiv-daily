@@ -5,7 +5,7 @@ For users who prefer containerized deployment, we now provide Docker deployment 
 - Running the service on your own server instead of GitHub Actions
 - Better resource control (CPU/RAM allocation)
 - Easier environment management
-- Persistent logging and model caching
+- Persistent logging
 - **Prerequisites**:
   - Docker installed ([Installation Guide](https://docs.docker.com/engine/install/))
   - Docker Compose (usually included with Docker Desktop)
@@ -26,7 +26,7 @@ docker build . -t local/zotero-arxiv-daily:latest
 
 3. Create necessary directories:
 ```bash
-mkdir -p logs models
+mkdir -p logs
 ```
 
 4. Edit the `docker-compose.yml` file to configure your environment variables:
@@ -36,21 +36,14 @@ environment:
       # 必填参数（示例值）
       - ZOTERO_ID=1234567
       - ZOTERO_KEY=AbCdEfGhIjKlMnOpQrStUvWx
-      - SMTP_SERVER=smtp.example.com
-      - SMTP_PORT=465
-      - SENDER=your_email@example.com
-      - SENDER_PASSWORD=your_email_password
-      - RECEIVER=receiver_email@example.com
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
 
       # 可选参数（带默认值）
       - ZOTERO_IGNORE=already_read_papers
       - ARXIV_QUERY=cs.AI+cs.CV+cs.LG+cs.CL
       - SEND_EMPTY=False
       - MAX_PAPER_NUM=5
-      - USE_LLM_API=1
-      - OPENAI_API_KEY=sk-your-openai-key-here
-      - OPENAI_API_BASE=https://api.openai.com/v1
-      - MODEL_NAME=gpt-oss:20b
+      - MODEL_NAME=hf.co/mmnga-o/NVIDIA-Nemotron-Nano-9B-v2-Japanese-gguf:Q4_K_M
       - LANGUAGE=English
       
       # 新增配置
@@ -70,7 +63,6 @@ docker compose up -d
 
 - **Scheduled Execution**: By default runs daily at 8:00 AM (configurable in `command` section)
 - **Log Persistence**: All logs are saved in the `logs/` directory
-- **Model Caching**: Local LLM models can be cached in `models/` directory
 - **Resource Isolation**: Runs in a contained environment with all dependencies included
 - **Easy Updates**: Simply rebuild the image when updating the service
 
@@ -79,9 +71,8 @@ docker compose up -d
 You can customize the deployment by:
 
 1. **Changing schedule time**: Edit the cron expression in `command` section (default: `0 8 * * *` means 8:00 AM daily)
-2. **Using local LLM**: Set `USE_LLM_API=0` and uncomment the models volume
-3. **Proxy settings**: Uncomment and configure proxy environment variables if needed
-4. **Timezone**: Uncomment `TZ` variable to set specific timezone (you may also need to comment `- /etc/localtime:/etc/localtime:ro`)
+2. **Proxy settings**: Uncomment and configure proxy environment variables if needed
+3. **Timezone**: Uncomment `TZ` variable to set specific timezone (you may also need to comment `- /etc/localtime:/etc/localtime:ro`)
 
 ### Monitoring and Maintenance
 
@@ -108,4 +99,4 @@ docker compose up -d --build
 2. **Resource Control**: Allocate specific CPU/RAM resources as needed
 3. **Isolation**: Runs separately from your host system
 4. **Portability**: Easy to move between different servers
-5. **Persistent Storage**: Logs and models persist between container restarts
+5. **Persistent Storage**: Logs persist between container restarts

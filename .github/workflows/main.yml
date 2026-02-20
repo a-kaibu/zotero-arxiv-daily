@@ -1,4 +1,4 @@
-name: Send emails daily
+name: Send Discord notifications daily
 on:
   workflow_dispatch:
   schedule:
@@ -17,6 +17,41 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
 
+      - name: Load MODEL_NAME from .env
+        run: |
+          set -a
+          source .env
+          set +a
+          if [ -z "$MODEL_NAME" ]; then
+            echo "MODEL_NAME is missing in .env"
+            exit 1
+          fi
+          echo "OLLAMA_MODEL=$MODEL_NAME" >> "$GITHUB_ENV"
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Cache Ollama models
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ runner.os }}-${{ env.OLLAMA_MODEL }}
+
+      - name: Start Ollama server
+        run: |
+          ollama serve > /tmp/ollama.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:11434/api/tags > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ollama.log
+          exit 1
+
+      - name: Pull Ollama model
+        run: ollama pull "${{ env.OLLAMA_MODEL }}"
+
       - name: Run script
         env:
           ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
@@ -24,18 +59,9 @@ jobs:
           ZOTERO_IGNORE: ${{ vars.ZOTERO_IGNORE }}
           SEND_EMPTY: ${{ vars.SEND_EMPTY }}
           ARXIV_QUERY: ${{ vars.ARXIV_QUERY }}
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SENDER: ${{ secrets.SENDER }}
-          RECEIVER: ${{ secrets.RECEIVER }}
-          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
           MAX_PAPER_NUM: ${{ vars.MAX_PAPER_NUM }}
-          USE_LLM_API: ${{ secrets.USE_LLM_API }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
-          MODEL_NAME: ${{ secrets.MODEL_NAME }}
+          MODEL_NAME: ${{ env.OLLAMA_MODEL }}
           LANGUAGE: ${{ vars.LANGUAGE }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          DELIVERY_CHANNEL: ${{ vars.DELIVERY_CHANNEL }}
         run: |
           uv run main.py

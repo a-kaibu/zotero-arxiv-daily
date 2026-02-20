@@ -7,25 +7,21 @@ services:
     container_name: zotero-arxiv-daily
     network_mode: bridge
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       # 必填参数（示例值）
       - ZOTERO_ID=1234567
       - ZOTERO_KEY=AbCdEfGhIjKlMnOpQrStUvWx
-      - SMTP_SERVER=smtp.example.com
-      - SMTP_PORT=465
-      - SENDER=your_email@example.com
-      - SENDER_PASSWORD=your_email_password
-      - RECEIVER=receiver_email@example.com
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
 
       # 可选参数（带默认值）
       - ZOTERO_IGNORE=already_read_papers
       - ARXIV_QUERY=cs.AI+cs.CV+cs.LG+cs.CL
       - SEND_EMPTY=False
       - MAX_PAPER_NUM=5
-      - USE_LLM_API=1
-      - OPENAI_API_KEY=sk-your-openai-key-here
-      - OPENAI_API_BASE=https://api.openai.com/v1
-      - MODEL_NAME=gpt-oss:20b
+      - MODEL_NAME=${MODEL_NAME}
+      - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME}
       - LANGUAGE=English
 
       # 新增配置
@@ -37,7 +33,6 @@ services:
 
     volumes:
       - ./logs:/var/log/cron  # 日志持久化
-      # - ./models:/app/models  # LLM模型缓存，如果你使用本地推理的话
       - /etc/localtime:/etc/localtime:ro  # 同步主机时区
 
     command: >

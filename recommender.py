@@ -1,9 +1,14 @@
+import os
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from paper import ArxivPaper
 from datetime import datetime
+from dotenv import load_dotenv
 
-def rerank_paper(candidate:list[ArxivPaper],corpus:list[dict],model:str='BAAI/bge-small-en-v1.5') -> list[ArxivPaper]:
+load_dotenv(override=True)
+DEFAULT_EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-m3")
+
+def rerank_paper(candidate:list[ArxivPaper],corpus:list[dict],model:str=DEFAULT_EMBEDDING_MODEL_NAME) -> list[ArxivPaper]:
     encoder = SentenceTransformer(model)
     #sort corpus by date, from newest to oldest
     corpus = sorted(corpus,key=lambda x: datetime.strptime(x['data']['dateAdded'], '%Y-%m-%dT%H:%M:%SZ'),reverse=True)

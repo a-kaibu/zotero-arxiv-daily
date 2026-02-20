@@ -1,47 +1,38 @@
-from llama_cpp import Llama
+import os
 from openai import OpenAI
 from loguru import logger
 from time import sleep
+from dotenv import load_dotenv
 
-DEFAULT_MODEL_NAME = "gpt-oss:20b"
+load_dotenv(override=True)
+
+DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "hf.co/mmnga-o/NVIDIA-Nemotron-Nano-9B-v2-Japanese-gguf:Q4_K_M")
+DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434/v1"
 
 GLOBAL_LLM = None
 
 class LLM:
-    def __init__(self, api_key: str = None, base_url: str = None, model: str = None, lang: str = "English"):
-        if api_key:
-            self.llm = OpenAI(api_key=api_key, base_url=base_url)
-        else:
-            self.llm = Llama.from_pretrained(
-                repo_id="Qwen/Qwen2.5-3B-Instruct-GGUF",
-                filename="qwen2.5-3b-instruct-q4_k_m.gguf",
-                n_ctx=5_000,
-                n_threads=4,
-                verbose=False,
-            )
+    def __init__(self, model: str = None, lang: str = "English"):
+        self.llm = OpenAI(api_key="ollama", base_url=DEFAULT_OLLAMA_BASE_URL)
         self.model = model or DEFAULT_MODEL_NAME
         self.lang = lang
 
     def generate(self, messages: list[dict]) -> str:
-        if isinstance(self.llm, OpenAI):
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    response = self.llm.chat.completions.create(messages=messages, temperature=0, model=self.model)
-                    break
-                except Exception as e:
-                    logger.error(f"Attempt {attempt + 1} failed: {e}")
-                    if attempt == max_retries - 1:
-                        raise
-                    sleep(3)
-            return response.choices[0].message.content
-        else:
-            response = self.llm.create_chat_completion(messages=messages,temperature=0)
-            return response["choices"][0]["message"]["content"]
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.llm.chat.completions.create(messages=messages, temperature=0, model=self.model)
+                break
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    raise
+                sleep(3)
+        return response.choices[0].message.content
 
-def set_global_llm(api_key: str = None, base_url: str = None, model: str = None, lang: str = "English"):
+def set_global_llm(model: str = None, lang: str = "English"):
     global GLOBAL_LLM
-    GLOBAL_LLM = LLM(api_key=api_key, base_url=base_url, model=model, lang=lang)
+    GLOBAL_LLM = LLM(model=model, lang=lang)
 
 def get_llm() -> LLM:
     if GLOBAL_LLM is None:

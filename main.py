@@ -21,7 +21,6 @@ load_dotenv(override=True)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from pyzotero import zotero
 from recommender import rerank_paper
-from construct_email import render_email, send_email
 from discord_webhook import notify_discord
 from tqdm import trange,tqdm
 from loguru import logger
@@ -118,43 +117,13 @@ if __name__ == '__main__':
     add_argument('--zotero_id', type=str, help='Zotero user ID')
     add_argument('--zotero_key', type=str, help='Zotero API key')
     add_argument('--zotero_ignore',type=str,help='Zotero collection to ignore, using gitignore-style pattern.')
-    add_argument('--send_empty', type=bool, help='If get no arxiv paper, send empty email',default=False)
+    add_argument('--send_empty', type=bool, help='Send Discord notification even if no new arxiv paper',default=False)
     add_argument('--max_paper_num', type=int, help='Maximum number of papers to recommend',default=100)
     add_argument('--arxiv_query', type=str, help='Arxiv search query')
-    add_argument('--smtp_server', type=str, help='SMTP server')
-    add_argument('--smtp_port', type=int, help='SMTP port')
-    add_argument('--sender', type=str, help='Sender email address')
-    add_argument('--receiver', type=str, help='Receiver email address')
-    add_argument('--sender_password', type=str, help='Sender email password')
-    add_argument(
-        '--delivery_channel',
-        type=str.lower,
-        choices=['email', 'discord', 'both'],
-        default='email',
-        help='Channel used to deliver notifications (email, discord, or both).',
-    )
-    add_argument(
-        "--use_llm_api",
-        type=bool,
-        help="Use OpenAI API to generate TLDR",
-        default=False,
-    )
     add_argument(
         "--discord_webhook_url",
         type=str,
         help="Discord webhook URL for paper notifications",
-    )
-    add_argument(
-        "--openai_api_key",
-        type=str,
-        help="OpenAI API key",
-        default=None,
-    )
-    add_argument(
-        "--openai_api_base",
-        type=str,
-        help="OpenAI API base URL",
-        default="https://api.openai.com/v1",
     )
     add_argument(
         "--model_name",
@@ -170,9 +139,6 @@ if __name__ == '__main__':
     )
     parser.add_argument('--debug', action='store_true', help='Debug mode')
     args = parser.parse_args()
-    assert (
-        not args.use_llm_api or args.openai_api_key is not None
-    )  # If use_llm_api is True, openai_api_key must be provided
     if args.debug:
         logger.remove()
         logger.add(sys.stdout, level="DEBUG")
@@ -181,37 +147,9 @@ if __name__ == '__main__':
         logger.remove()
         logger.add(sys.stdout, level="INFO")
 
-    delivery_channel = args.delivery_channel
-    send_email_enabled = delivery_channel in {"email", "both"}
-    send_discord_enabled = delivery_channel in {"discord", "both"}
-
-    if send_discord_enabled and not args.discord_webhook_url:
+    if not args.discord_webhook_url:
         logger.error(
-            "Discord delivery selected but DISCORD_WEBHOOK_URL is not set."
-        )
-        sys.exit(1)
-
-    if send_email_enabled:
-        email_config = {
-            "SENDER": args.sender,
-            "RECEIVER": args.receiver,
-            "SENDER_PASSWORD": args.sender_password,
-            "SMTP_SERVER": args.smtp_server,
-            "SMTP_PORT": args.smtp_port,
-        }
-        missing_email_fields = [
-            name for name, value in email_config.items() if value in (None, "")
-        ]
-        if missing_email_fields:
-            logger.error(
-                "Email delivery selected but missing configuration for: {}.",
-                ", ".join(missing_email_fields),
-            )
-            sys.exit(1)
-
-    if not send_email_enabled and not send_discord_enabled:
-        logger.error(
-            "No delivery channel configured. Set DELIVERY_CHANNEL to 'email', 'discord', or 'both'."
+            "DISCORD_WEBHOOK_URL is not set."
         )
         sys.exit(1)
 
@@ -227,41 +165,14 @@ if __name__ == '__main__':
     if len(papers) == 0:
         logger.info("No new papers found. Yesterday maybe a holiday and no one submit their work :). If this is not the case, please check the ARXIV_QUERY.")
         if not args.send_empty:
-            if send_discord_enabled:
-                notify_discord([], args.discord_webhook_url)
             sys.exit(0)
     else:
         logger.info("Reranking papers...")
         papers = rerank_paper(papers, corpus)
         if args.max_paper_num != -1:
             papers = papers[:args.max_paper_num]
-        if args.use_llm_api:
-            logger.info("Using OpenAI API as global LLM.")
-            set_global_llm(api_key=args.openai_api_key, base_url=args.openai_api_base, model=args.model_name, lang=args.language)
-        else:
-            logger.info("Using Local LLM as global LLM.")
-            set_global_llm(lang=args.language)
+        logger.info("Using local Ollama as global LLM.")
+        set_global_llm(model=args.model_name, lang=args.language)
 
-    if send_email_enabled:
-        html = render_email(papers)
-        logger.info("Sending email...")
-        send_email(
-            args.sender,
-            args.receiver,
-            args.sender_password,
-            args.smtp_server,
-            args.smtp_port,
-            html,
-        )
-        logger.success(
-            "Email sent successfully! If you don't receive the email, please check the configuration and the junk box."
-        )
-    else:
-        logger.info(
-            "Skipping email delivery (delivery_channel={}).",
-            delivery_channel,
-        )
-
-    if send_discord_enabled:
-        logger.info("Sending Discord notification...")
-        notify_discord(papers, args.discord_webhook_url)
+    logger.info("Sending Discord notification...")
+    notify_discord(papers, args.discord_webhook_url)
